@@ -1,0 +1,53 @@
+﻿import express from "express";
+const app = express();
+const PORT = 3000;
+app.set("view engine", "ejs");
+app.set("views", "./views");
+
+app.use(express.urlencoded({ extented: true }));
+
+app.get("/", (req, res) => {
+  res.send(`<a href="/about">О нас</a> <a href="/contact">Контакты</a>`);
+});
+app.get("/about", (req, res) => {
+  res.send("Конференции.РФ - О нас");
+});
+app.get("/contact", (req, res) => {
+  res.send("Конференции.РФ - Контакты");
+});
+
+app.get("/register", (req, res) => {
+  res.render("register", {
+    title: "Регистрация на портале",
+    errors: [],
+  });
+});
+app.post("/register", function (req, res) {
+  res.redirect("/login");
+});
+
+app.post("/login", function (req, res) {
+  res.redirect("/dashboard");
+});
+
+app.get("/login", (req, res) => {
+  res.render("login", {
+    title: "Вход в систему",
+    errors: [],
+  });
+});
+
+app.get("/dashboard", (req, res) => {
+  res.render("dashboard", {
+    title: "Личный Кабинет",
+    errors: [],
+    requests: [
+      { room_name: "Аудитория 1", status: "Новая" },
+      { room_name: "Аудитория 2", status: "Новая" },
+    ],
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`Сервер: http://localhost:${PORT}`);
+});
