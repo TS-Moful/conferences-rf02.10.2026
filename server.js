@@ -10,10 +10,30 @@ app.get("/", (req, res) => {
   res.send(`<a href="/about">О нас</a> <a href="/contact">Контакты</a>`);
 });
 app.get("/about", (req, res) => {
-  res.send("Конференции.РФ - О нас");
+  res.render("about", {
+    title: "Регистрация на портале",
+    errors: [],
+  });
 });
 app.get("/contact", (req, res) => {
-  res.send("Конференции.РФ - Контакты");
+  res.render("contact", {
+    title: "Контакты",
+    errors: [],
+  });
+});
+
+app.get("/help", (req, res) => {
+  res.render("help", {
+    title: "Помощь",
+    errors: [],
+  });
+});
+
+app.get("/rooms", (req, res) => {
+  res.render("rooms", {
+    title: "Список помещений",
+    errors: [],
+  });
 });
 
 app.get("/register", (req, res) => {
