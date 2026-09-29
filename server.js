@@ -43,6 +43,7 @@ app.get("/register", (req, res) => {
   });
 });
 app.post("/register", function (req, res) {
+  console.log(`Город пользователя: ${req.body.city}`);
   res.redirect("/login");
 });
 
