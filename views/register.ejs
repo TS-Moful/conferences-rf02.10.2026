@@ -1,13 +1,14 @@
+<%- include('header', { title: 'Регистрация' }) %>
+
+
 <h1><%= title %></h1>
 
 <% if (errors.length) { %>
     <ul>
-        <% errors.forEach(e=>  { %>
+        <% errors.forEach(function(e) { %>
             <li><%= e %></li>
-
-    <%    })  %>
+        <% }); %>
     </ul>
-
 <% } %>
 
 <form method="POST" action="/register">
@@ -20,3 +21,5 @@
   <button>Создать пользователя</button>
   <button type="reset">Очистить форму</button>
 </form>
+
+<%- include('footer') %>

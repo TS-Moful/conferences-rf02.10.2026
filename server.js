@@ -1,10 +1,27 @@
-﻿import express from "express";
+﻿import express from 'express';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import db from './db.js';
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 3000;
-app.set("view engine", "ejs");
-app.set("views", "./views");
 
-app.use(express.urlencoded({ extented: true }));
+const users = db.prepare('SELECT * FROM users').all();
+console.log('Все пользователи:')
+console.log(users);
+
+const rooms = db.prepare('SELECT * FROM rooms').all();
+console.log('Все помещения:')
+console.log(rooms);
+
+app.use(express.urlencoded({ extended: true }));
+
+app.use(express.static("public"));
+
+app.use(express.static(join(__dirname, "public")));
+
+app.set('view engine', 'ejs');
+app.set('views', join(__dirname, 'views'));
 
 app.get("/", (req, res) => {
   res.send(`<a href="/about">О нас</a> <a href="/contact">Контакты</a>`);
