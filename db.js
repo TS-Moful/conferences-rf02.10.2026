@@ -1,9 +1,12 @@
 import Database from "better-sqlite3";
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
+import { isDeepStrictEqual } from "util";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = new Database(join(__dirname, 'conf.db'));
+
+
 
 db.pragma("foreign_keys = ON");
 
@@ -136,6 +139,101 @@ const joinRowsClean = db.prepare(`
 console.log('Оптимизированный вывод с группировкой отзывов:');
 console.log(joinRowsClean);
 
+class UserModel {
+  constructor() {
+    this.table = "users";
+  }
+
+  findById(id) {
+    return db.prepare(`SELECT * FROM ${this.table} WHERE id = ?`).get(id);
+  }
+
+  findByLogin(login) {
+    return db.prepare(`SELECT * FROM ${this.table} WHERE login = ?`).get(login);
+  }
+
+  findAll() {
+    return db.prepare(`SELECT * FROM ${this.table}`).all();
+  }
+
+  count() {
+    const result = db.prepare(`SELECT COUNT(*) as count FROM ${this.table}`).get();
+    return result ? result.count : 0; 
+  }
+
+  exists(login) {
+    const user = db.prepare(`SELECT 1 FROM ${this.table} WHERE login = ?`).get(login);
+    return !!user; 
+  }
+}
+
+class RoomModel {
+    constructor() {
+        this.table = "rooms"
+    }
+
+     findAll() {
+    return db.prepare(`SELECT * FROM ${this.table}`).all();
+  }
+
+  findById(id) {
+    return db.prepare(`SELECT * FROM ${this.table} WHERE id = ?`).get(id);
+  }
+
+   findByType(type) {
+    return db.prepare(`SELECT * FROM ${this.table} WHERE type = ?`).get(type);
+  }
+
+  count() {
+    const result = db.prepare(`SELECT COUNT(*) as count FROM ${this.table}`).get();
+    return result ? result.count : 0; 
+  }
+
+
+}
+
+class RequestModel {
+    constructor() {
+        this.table = "requests"
+    }
+     findById(id) {
+    return db.prepare(`SELECT * FROM ${this.table} WHERE id = ?`).get(id);
+  }
+      findByUser(userId) {
+        const Userid = `
+            SELECT r.*, rm.name AS room_name
+            FROM ${this.table} r
+            JOIN rooms rm ON r.room_id = rm.id
+            WHERE r.user_id = ?
+        `;
+        return db.prepare(Userid).all(userId);
+    }
+    findAllDetailed() {
+        const detailed = `
+            SELECT r.*, u.fio AS user_fio, rm.name AS room_name
+            FROM ${this.table} r
+            JOIN users u ON r.user_id = u.id
+            JOIN rooms rm ON r.room_id = rm.id
+        `;
+        return db.prepare(detailed).all();
+    }
+    count() {
+        const result = db.prepare(`SELECT COUNT(*) as count FROM ${this.table}`).get();
+        return result.count;
+    }
+    updateStatus(id, status) {
+        return db.prepare(`UPDATE ${this.table} SET status = ? WHERE id = ?`).run(status, id);
+    }
+
+
+}
+
+
+export const User = new UserModel();
+export const Room = new RoomModel();
+export const Request = new RequestModel();
+
+ 
 
 export default db;
 

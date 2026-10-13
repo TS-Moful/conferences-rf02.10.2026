@@ -2,9 +2,58 @@
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import db from './db.js';
+import {User} from "./db.js";
+import { Room } from "./db.js";
+import { Request } from "./db.js";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 3000;
+
+
+////USERS
+console.log("Пользователь с id 1", User.findById(1));
+console.log("Пользователь с с логином ivan", User.findByLogin("ivan"));
+console.log("Все Пользователи", User.findAll());
+console.log("Всего пользователей", User.count());
+console.log("Есть ли пользователь ivan", User.exists("ivan"));
+/////////////////////////
+
+
+
+///////////ROOMS
+console.log("Все комнаты:");
+console.log(Room.findAll());
+
+console.log("Комната с id=1:");
+console.log(Room.findById(1));
+
+console.log("Все аудитории:");
+console.log(Room.findByType("конференц-зал"));
+
+console.log("Всего комнат:");
+console.log(Room.count());
+///////////////////
+
+
+
+
+////////REQUESTS
+console.log("Заявка с id=1:");
+console.log(Request.findById(1));
+
+console.log("Заявки пользователя id=1:");
+console.log(Request.findByUser(1));
+
+console.log("Все заявки (JOIN):");
+console.log(Request.findAllDetailed());
+
+console.log("Всего заявок:");
+console.log(Request.count());
+///////////////////////////////////////
+
+
+
 
 const users = db.prepare('SELECT * FROM users').all();
 console.log('Все пользователи:')
@@ -13,6 +62,7 @@ console.log(users);
 const rooms = db.prepare('SELECT * FROM rooms').all();
 console.log('Все помещения:')
 console.log(rooms);
+
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -23,36 +73,16 @@ app.use(express.static(join(__dirname, "public")));
 app.set('view engine', 'ejs');
 app.set('views', join(__dirname, 'views'));
 
+
+
+
+
+//////////////////ROUTES///////////////////////////////////////
 app.get("/", (req, res) => {
   res.send(`<a href="/about">О нас</a> <a href="/contact">Контакты</a>`);
 });
-app.get("/about", (req, res) => {
-  res.render("about", {
-    title: "О портале Конференции.РФ",
-    description: "Мы — ведущая платформа для организации научных и образовательных мероприятий. Наша цель — объединить экспертов и участников для обмена передовым опытом.",
-    errors: [],
-  });
-});
-app.get("/contact", (req, res) => {
-  res.render("contact", {
-    title: "Контакты",
-    errors: [],
-  });
-});
 
-app.get("/help", (req, res) => {
-  res.render("help", {
-    title: "Помощь",
-    errors: [],
-  });
-});
 
-app.get("/rooms", (req, res) => {
-  res.render("rooms", {
-    title: "Список помещений",
-    errors: [],
-  });
-});
 
 app.get("/register", (req, res) => {
   res.render("register", {
@@ -60,6 +90,8 @@ app.get("/register", (req, res) => {
     errors: [],
   });
 });
+
+
 app.post("/register", function (req, res) {
   console.log(`Город пользователя: ${req.body.city}`);
   res.redirect("/login");
@@ -86,7 +118,7 @@ app.get("/dashboard", (req, res) => {
     ],
   });
 });
-
+///////////////////////////////////////////ROUTES END///////////////////////////////////
 app.listen(PORT, () => {
   console.log(`Сервер: http://localhost:${PORT}`);
 });
