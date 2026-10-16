@@ -5,6 +5,7 @@ import db from './db.js';
 import {User} from "./db.js";
 import { Room } from "./db.js";
 import { Request } from "./db.js";
+import { text } from 'stream/consumers';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -55,6 +56,16 @@ console.log(Request.count());
 
 
 
+const newRequest = Request.create({
+  userId: 1,
+  roomId: 2,
+  dateStart: "2027-04-10",
+  payment: "СБП"
+})
+console.log("Созданная заявка")
+console.log(newRequest)
+
+
 const users = db.prepare('SELECT * FROM users').all();
 console.log('Все пользователи:')
 console.log(users);
@@ -91,9 +102,27 @@ app.get("/register", (req, res) => {
   });
 });
 
+app.get("/create", (req, res) => {
+  
+  res.render("create_request", {
+    title: "Создание заявку",
+    rooms,
+    errors: [],
+  });
+});
 
 app.post("/register", function (req, res) {
-  console.log(`Город пользователя: ${req.body.city}`);
+  const errors = validate(req.body);
+
+  if (User.exists(req.body.login)) {
+    errors.push('Логин уже занят');
+  }
+  if (errors.lenght) {
+    return res.render('auht', {mode : 'register', form : req.body, errors})
+  }
+
+  User.create(req.body);
+  req.session.flash = { type: 'success', text: 'Регистрация успешна. Войдите'}
   res.redirect("/login");
 });
 
