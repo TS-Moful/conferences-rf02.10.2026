@@ -1,8 +1,11 @@
 ﻿import express from 'express';
+import session from 'express-session';
+import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import db from './db.js';
 import {User} from "./db.js";
+
 import { Room } from "./db.js";
 import { Request } from "./db.js";
 import { text } from 'stream/consumers';
@@ -12,60 +15,7 @@ const app = express();
 const PORT = 3000;
 
 
-////USERS
-console.log("Пользователь с id 1", User.findById(1));
-console.log("Пользователь с с логином ivan", User.findByLogin("ivan"));
-console.log("Все Пользователи", User.findAll());
-console.log("Всего пользователей", User.count());
-console.log("Есть ли пользователь ivan", User.exists("ivan"));
-/////////////////////////
-
-
-
-///////////ROOMS
-console.log("Все комнаты:");
-console.log(Room.findAll());
-
-console.log("Комната с id=1:");
-console.log(Room.findById(1));
-
-console.log("Все аудитории:");
-console.log(Room.findByType("конференц-зал"));
-
-console.log("Всего комнат:");
-console.log(Room.count());
-///////////////////
-
-
-
-
-////////REQUESTS
-console.log("Заявка с id=1:");
-console.log(Request.findById(1));
-
-console.log("Заявки пользователя id=1:");
-console.log(Request.findByUser(1));
-
-console.log("Все заявки (JOIN):");
-console.log(Request.findAllDetailed());
-
-console.log("Всего заявок:");
-console.log(Request.count());
-///////////////////////////////////////
-
-
-
-
-const newRequest = Request.create({
-  userId: 1,
-  roomId: 2,
-  dateStart: "2027-04-10",
-  payment: "СБП"
-})
-console.log("Созданная заявка")
-console.log(newRequest)
-
-
+/////////////////////////////MIDDLEWARES///////////////////////////
 const users = db.prepare('SELECT * FROM users').all();
 console.log('Все пользователи:')
 console.log(users);
@@ -84,9 +34,59 @@ app.use(express.static(join(__dirname, "public")));
 app.set('view engine', 'ejs');
 app.set('views', join(__dirname, 'views'));
 
+app.use(session({
+   secret: 'conf2027-secret',
+
+   resave: false,
+   saveUninitialized: false,
+   cookie: {
+    maxAge: 1000 * 60 * 60 * 2,
+    httpOnly: true,
+    sameSite: 'lax'
+   }
+}));
+
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
+
+
+const INACTIVITY_LIMIT = 20 * 60 * 1000;
+app.use((req, res, next) => {
+  if (req.session && req.session.userId) {
+    const now = Date.now(); 
+
+    if (req.session.lastActivity && (now - req.session.lastActivity > INACTIVITY_LIMIT)) {
+      return req.session.destroy(() => {
+        res.redirect('/login');
+      });
+    }
+    req.session.lastActivity = now;
+  }
+  next();
+});
 
 
 
+const requireAuth = (req, res, next) =>
+  req.session.userId ? next() : res.redirect('/login');
+
+const requireAdmin = (req, res, next) =>
+  req.session.login === 'Conf2027' ? next() : res.redirect('/login');
+
+/////////////////////////REGULARS///////////////////////////////
+const RULES = [
+  { field: 'login',    test: v => /^[A-Za-z0-9]{6,}$/.test(v),             msg: 'Логин: латиница+цифры, минимум 6 символов' },
+  { field: 'password', test: v => v && v.length >= 8,                      msg: 'Пароль: минимум 8 символов' },
+  { field: 'fio',      test: v => /^[А-Яа-яЁё\s]+$/.test(v),               msg: 'ФИО: только кириллица и пробелы' },
+  { field: 'phone',    test: v => /^8\(\d{3}\)\d{3}-\d{2}-\d{2}$/.test(v), msg: 'Телефон: формат 8(ХХХ)ХХХ-ХХ-ХХ' },
+  { field: 'email',    test: v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v),    msg: 'Email: некорректный формат' }
+];
+
+const validate = data => RULES
+  .filter(({ field, test }) => !test((data[field] || '').trim()))
+  .map(r => r.msg);
 
 //////////////////ROUTES///////////////////////////////////////
 app.get("/", (req, res) => {
@@ -94,12 +94,33 @@ app.get("/", (req, res) => {
 });
 
 
-
 app.get("/register", (req, res) => {
-  res.render("register", {
-    title: "Регистрация на портале",
-    errors: [],
+  res.render("auth", {
+    mode: 'register',
+    form: {},
+    errors: []
   });
+});
+
+
+app.post("/register", function (req, res) {
+  const errors = validate(req.body);
+  if (User.exists(req.body.login)) {
+    errors.push('Логин уже занят');
+  }
+  if (errors.lenght) {
+    return res.render('auth', {
+      mode: 'register',
+      form: req.body,
+      errors
+    });
+  }
+
+  User.create(req.body);
+  req.session.flash = { 
+    type: 'success', 
+    text: 'Регистрация успешна. Войдите'}
+  res.redirect("/login");
 });
 
 app.get("/create", (req, res) => {
@@ -111,31 +132,37 @@ app.get("/create", (req, res) => {
   });
 });
 
-app.post("/register", function (req, res) {
-  const errors = validate(req.body);
-
-  if (User.exists(req.body.login)) {
-    errors.push('Логин уже занят');
-  }
-  if (errors.lenght) {
-    return res.render('auht', {mode : 'register', form : req.body, errors})
-  }
-
-  User.create(req.body);
-  req.session.flash = { type: 'success', text: 'Регистрация успешна. Войдите'}
-  res.redirect("/login");
-});
 
 app.post("/login", function (req, res) {
-  res.redirect("/dashboard");
+  const user = User.findByLogin(req.body.login);
+
+  if (user && bcrypt.compareSync(req.body.password, user.password)) {
+    req.session.userId = user.Id;
+    req.session.fio = user.fio;
+    req.session.login = user.login;
+    req.session.lastActivity = Date.now();
+
+    return res.redirect(user.login === 'conf2027' ? '/admin' : '/dashboard')
+  }
+
+  res.render('auth', {
+    mode: 'login',
+    error: 'Неверный логин или пароль',
+    flash: null
+  });
 });
 
 app.get("/login", (req, res) => {
-  res.render("login", {
-    title: "Вход в систему",
-    errors: [],
+  const flash = req.session.flash || null;
+  delete req.session.flash;
+   res.render('auth', {
+    mode: 'login',
+    error: null,
+    flash
+   });
+
   });
-});
+
 
 app.get("/dashboard", (req, res) => {
   res.render("dashboard", {
@@ -146,6 +173,11 @@ app.get("/dashboard", (req, res) => {
       { room_name: "Аудитория 2", status: "Новая" },
     ],
   });
+});
+
+
+app.all('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login'));
 });
 ///////////////////////////////////////////ROUTES END///////////////////////////////////
 app.listen(PORT, () => {
