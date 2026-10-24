@@ -133,6 +133,8 @@ app.get("/create", (req, res) => {
 });
 
 
+
+
 app.post("/login", function (req, res) {
   const user = User.findByLogin(req.body.login);
 
@@ -179,6 +181,24 @@ app.get("/dashboard", (req, res) => {
 app.all('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
 });
+
+
+
+app.get("/", (req, res) =>{
+  res.redirect("rooms");
+
+});
+
+app.get("/rooms", (req, res) => {
+  const rooms = Room.findAll();
+  res.render("rooms", { rooms });
+});
+
+app.get("/rooms/type/:type", (req, res) => {
+  const rooms = Room.findAll().filter(r => r.type === req.params.type);
+  res.render("rooms", { rooms });
+});
+
 ///////////////////////////////////////////ROUTES END///////////////////////////////////
 app.listen(PORT, () => {
   console.log(`Сервер: http://localhost:${PORT}`);
