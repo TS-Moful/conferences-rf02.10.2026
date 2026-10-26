@@ -1,11 +1,11 @@
 <%- include('header') %>
 
-<div class="row justify-content=center">
+<div class="row justify-content-center">
     <div class="col-md-8 col-12">
         <h1 class="mb-4">Новая заявка</h1>
 
 
-<% if (typeof errors !== 'undefined' && errors.lenght) { %>
+<% if (typeof errors !== 'undefined' && errors.length) { %>
     <div class="alert alert-danger">
         <% errors.forEach(e=>  { %>
             <div><%= e %></div>
